@@ -1,0 +1,6 @@
+*.txt
+reports/
+resume.cfg
+settings.py
+venv
+__pycache__

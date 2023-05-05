@@ -1,0 +1,10 @@
+# Define products and their corresponding regex patterns
+products = {
+    "Dev":r".*(dev|staging|test).*",
+    "Github": r".*\.?github\.com",
+    "Unknown": r".*"
+}
+
+false_positive = [
+'[dbeaver-credentials] [http] [medium] https://www.github.com/.dbeaver/credentials-config.json\n',
+]
