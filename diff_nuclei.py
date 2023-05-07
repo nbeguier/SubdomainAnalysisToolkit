@@ -3,18 +3,22 @@
 Nuclei Report Diff
 """
 
-import os
 import re
 import argparse
 from datetime import datetime, timedelta
+from pathlib import Path
 from tabulate import tabulate
 
-def get_files(pattern):
+def get_files(pattern: str) -> list:
     """
-    Returns a list of files in the current directory that match the given pattern.
+    Returns a list of files in the "reports" directory that match the given pattern.
+
+    :param pattern: A string representing a regex pattern
+    :return: List of matching files
     """
-    files = os.listdir()
-    return [f for f in files if re.match(pattern, f)]
+    reports_dir = Path("reports")
+    files = list(reports_dir.glob('*'))
+    return [f for f in files if re.match(pattern, f.name)]
 
 def extract_most_recent(files):
     """
@@ -50,7 +54,7 @@ def extract_old(files, days):
     cutoff_date_str = cutoff_date.strftime("%Y%m%d-%H%M%S")
 
     for file in files:
-        if file > f"report.nuclei.{cutoff_date_str}.txt":
+        if file.name > f"report.nuclei.{cutoff_date_str}.txt":
             continue
 
         with open(file, 'r', encoding='utf-8') as f:

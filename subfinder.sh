@@ -8,7 +8,7 @@ fi
 
 input_file="$1"
 timestamp=$(date +%Y%m%d-%H%M%S)
-subfinder_output="targets.subfinder.${timestamp}.txt"
+subfinder_output="targets.subfinder/targets.subfinder.${timestamp}.txt"
 subfinder_latest_output="targets.subfinder.latest.txt"
 previous_subfinder_file="$subfinder_latest_output"
 
