@@ -112,7 +112,7 @@ def main():
             if line in false_positive:
                 continue
             # Match and extract required information from each line
-            is_valid, category, _, severity, subproduct = process_nuclei_report_line(line)
+            is_valid, category, protocol, severity, subproduct = process_nuclei_report_line(line)
             if not is_valid:
                 continue
             # Update global statistics
@@ -120,7 +120,7 @@ def main():
             # Extract the product name and update product statistics
             product = classify_subdomains(subproduct)
             product_stats[product][severity][category] += 1
-            if severity not in ['info']:
+            if severity not in ['info'] and protocol != 'ssl':
                 product_lines[product].add(line)
             # Create a list of Wordpress
             if category.startswith('wordpress-detect') or category == 'metatag-cms':

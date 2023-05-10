@@ -80,6 +80,8 @@ def print_most_recent(most_recent, severe):
 
     for entry in most_recent:
         line = entry[1]
+        if line.split()[1] == '[ssl]':
+            continue
         if not severe or "[high]" in line or "[medium]" in line or "[low]" in line:
             rows.append([line.split()[0], line.split()[1], line.split()[2], line.split()[3], ' '.join(line.split()[4:])])
 
