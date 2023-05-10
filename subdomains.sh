@@ -12,7 +12,7 @@ subfinder_output="targets.subfinder/targets.subfinder.${timestamp}.txt"
 amass_output="targets.amass/targets.amass.${timestamp}.txt"
 subdomain_latest_output="targets.latest.txt"
 previous_subdomains_file="/tmp/targets.latest.txt"
-TIMEOUT=1 # in minutes
+TIMEOUT=10 # in minutes
 
 cp "$subdomain_latest_output" "$previous_subdomains_file"
 

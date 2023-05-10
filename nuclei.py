@@ -13,28 +13,20 @@ import tempfile
 from settings import nuclei_exclude_templates, nuclei_target_blacklist
 
 # Debug
-from pdb import set_trace as st
+# from pdb import set_trace as st
 
-def main(input_file: str):
-    """
-    Run httpx and nuclei with the given input file, and store the output in a report file.
-    """
-    if not Path(input_file).exists():
-        print(f"Input file '{input_file}' not found. Exiting.")
-        return
+def update_tools():
+    """Update dnsx, httpx and nuclei tools"""
+    print('Updating dnsx, httpx and nuclei')
+    subprocess.run(['dnsx', '-silent', '-up'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+    subprocess.run(['httpx', '-silent', '-up'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+    subprocess.run(['nuclei', '-silent', '-up'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+    subprocess.run(['nuclei', '-silent', '-ut'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
-    timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-    nuclei_output = f'reports/report.nuclei.{timestamp}.txt'
-    nuclei_tmp_output = 'report.nuclei.tmp.txt'
 
-    # Update nuclei
-    print('Updating httpx and nuclei')
-    subprocess.run(['httpx', '-silent', '-up'])
-    subprocess.run(['nuclei', '-silent', '-up'])
-    subprocess.run(['nuclei', '-silent', '-ut'])
-
-    # Execute httpx and nuclei to perform the scan
-    print(f'Launching httpx and nuclei to perform the scan... ({nuclei_tmp_output})')
+def perform_scan(input_file, nuclei_no_tcp_tmp_output):
+    """Perform the scan using httpx and nuclei"""
+    print(f'Launching httpx and nuclei to perform the scan... ({nuclei_no_tcp_tmp_output})')
     try:
         with open(input_file, encoding='utf-8') as targets:
             with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp:
@@ -48,19 +40,129 @@ def main(input_file: str):
                 stdin=temp_in,
                 stdout=subprocess.PIPE)
             nuclei_process = subprocess.Popen(
-                ['nuclei', '-et', ','.join(nuclei_exclude_templates),
-                    '-o', nuclei_tmp_output, '-page-timeout', '3',
+                ['nuclei', '-silent', '-et', ','.join(nuclei_exclude_templates),
+                    '-exclude-type', 'tcp',
+                    '-o', nuclei_no_tcp_tmp_output, '-page-timeout', '3',
                     '-timeout', '3', '-concurrency', '50',
                     '-bulk-size', '50', '-rate-limit', '500'], stdin=httpx_process.stdout)
             nuclei_process.communicate()
     except (subprocess.CalledProcessError, KeyboardInterrupt):
         print('Nuclei process interrupted. Continuing...')
 
-    if Path(nuclei_tmp_output).exists():
-        Path(nuclei_tmp_output).rename(nuclei_output)
+
+def generate_ips(input_file):
+    """Generate a list of IPs from subdomains"""
+    try:
+        print('Generating a list of IPs from subdomains...')
+        command = f"cat {input_file} | dnsx -silent -resp -a"
+        output = subprocess.check_output(command, shell=True, text=True)
+
+        # Parse output and build dictionary
+        ip_to_domains = {}
+        for line in output.strip().split('\n'):
+            domain, ip = line.strip().split(' ')
+            ip = ip[1:-1]  # Remove square brackets around IP
+            if ip not in ip_to_domains:
+                ip_to_domains[ip] = []
+            ip_to_domains[ip].append(domain)
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+            temp_file.write('\n'.join([i for i in ip_to_domains]))
+            temp_file.flush()
+
+        return temp_file.name, ip_to_domains
+    except (subprocess.CalledProcessError, KeyboardInterrupt):
+        print('Nuclei process interrupted. Continuing...')
+        return None
+
+
+def perform_tcp_scan(ip_file, nuclei_tcp_tmp_output):
+    """Perform a TCP scan using nuclei"""
+    print(f'Launching nuclei to perform the TCP scan... ({nuclei_tcp_tmp_output})')
+    try:
+        nuclei_process = subprocess.Popen(
+            ['nuclei', '-silent', '-l', ip_file,
+                '-et', ','.join(nuclei_exclude_templates),
+                '-type', 'tcp',
+                '-o', nuclei_tcp_tmp_output, '-page-timeout', '3',
+                '-timeout', '3', '-concurrency', '50',
+                '-bulk-size', '50', '-rate-limit', '500'])
+        nuclei_process.communicate()
+    except (subprocess.CalledProcessError, KeyboardInterrupt):
+        print('Nuclei process interrupted. Continuing...')
+
+
+def add_metadata_tcp_scan(ip_to_domains, nuclei_tcp_tmp_output):
+    # Read the file and split it into lines
+    with open(nuclei_tcp_tmp_output, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+
+    # Create a new list to store modified lines
+    new_lines = []
+
+    # Loop over each line
+    for line in lines:
+        # Remove newline character
+        line = line.strip()
+
+        # Check if line contains any IP from ip_to_domains keys
+        for ip in ip_to_domains.keys():
+            if ip in line:
+                # If it does, append the associated value from the dict to the line
+                line += ' subdomains:' + ', '.join(ip_to_domains[ip])
+
+        # Add the (possibly modified) line to the new_lines list
+        new_lines.append(line)
+
+    # Write the new lines back to the file
+    with open(nuclei_tcp_tmp_output, 'w', encoding='utf-8') as file:
+        for line in new_lines:
+            file.write(line + '\n')  # Add newline character back in
+
+
+def generate_report(nuclei_no_tcp_tmp_output, nuclei_tcp_tmp_output, nuclei_output):
+    """Generate the final report"""
+    if Path(nuclei_no_tcp_tmp_output).exists() and Path(nuclei_tcp_tmp_output).exists():
+        with open(nuclei_no_tcp_tmp_output, 'r', encoding='utf-8') as f1, open(nuclei_tcp_tmp_output, 'r', encoding='utf-8') as f2, open(nuclei_output, 'w', encoding='utf-8') as out_file:
+            out_file.write(f1.read() + f2.read())
+        Path(nuclei_no_tcp_tmp_output).unlink()
+        Path(nuclei_tcp_tmp_output).unlink()
+        print(f'The nuclei report has been generated in the file {nuclei_output}')
+    elif Path(nuclei_no_tcp_tmp_output).exists():
+        Path(nuclei_no_tcp_tmp_output).rename(nuclei_output)
+        print(f'The nuclei report has been generated in the file {nuclei_output}')
+    elif Path(nuclei_tcp_tmp_output).exists():
+        Path(nuclei_tcp_tmp_output).rename(nuclei_output)
         print(f'The nuclei report has been generated in the file {nuclei_output}')
     else:
         print('Nuclei process did not generate a report.')
+
+
+def main(input_file: str):
+    """
+    Run httpx and nuclei with the given input file, and store the output in a report file.
+    """
+    if not Path(input_file).exists():
+        print(f"Input file '{input_file}' not found. Exiting.")
+        return
+
+    timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    nuclei_output = f'reports/report.nuclei.{timestamp}.txt'
+    nuclei_no_tcp_tmp_output = 'report.nuclei.no.tcp.tmp.txt'
+    nuclei_tcp_tmp_output = 'report.nuclei.tcp.tmp.txt'
+
+    update_tools()
+
+    perform_scan(input_file, nuclei_no_tcp_tmp_output)
+
+    ip_file, ip_dict = generate_ips(input_file)
+
+    if ip_file:
+        perform_tcp_scan(ip_file, nuclei_tcp_tmp_output)
+        add_metadata_tcp_scan(ip_dict, nuclei_tcp_tmp_output)
+
+    generate_report(nuclei_no_tcp_tmp_output, nuclei_tcp_tmp_output, nuclei_output)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Perform a scan using httpx and nuclei')
