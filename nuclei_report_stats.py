@@ -6,26 +6,12 @@ import sys
 import re
 from pathlib import Path
 from collections import defaultdict
-import socket
 from tabulate import tabulate
 
 from settings import products, false_positive
 
 # Debug
 # from pdb import set_trace as st
-
-def resolve_a_records(fqdn):
-    """
-    Resolve the A record(s) for a given FQDN (fully qualified domain name).
-
-    :param fqdn: the FQDN to resolve
-    :return: the first A record IP address, or 'unknown' if resolution fails
-    """
-    try:
-        a_records = socket.getaddrinfo(fqdn, None, socket.AF_INET)
-        return [record[4][0] for record in a_records][0]
-    except socket.gaierror:
-        return 'unknown'
 
 def classify_subdomains(subdomain):
     """
@@ -38,6 +24,30 @@ def classify_subdomains(subdomain):
         if re.match(pattern, subdomain):
             return product
     return None
+
+def detect_os_from_banner(line):
+    """
+    Returns an OS guess from openssh banner
+    """
+    match = re.search(r'(Debian-[0-9]+)', line)
+    if match:
+        return match.group(0)
+    match = re.search('OpenSSH_7.2p2 Ubuntu-4', line)
+    if match:
+        return 'Ubuntu-16.04'
+    match = re.search('OpenSSH_7.6p1 Ubuntu-4', line)
+    if match:
+        return 'Ubuntu-18.04'
+    match = re.search('OpenSSH_8.2p1 Ubuntu-4', line)
+    if match:
+        return 'Ubuntu-20.04'
+    match = re.search('OpenSSH_8.9p1 Ubuntu-3', line)
+    if match:
+        return 'Ubuntu-21.04'
+    match = re.search('Ubuntu', line)
+    if match:
+        return 'Ubuntu-x.x'
+    return 'Unknown'
 
 def process_nuclei_report_line(line):
     """
@@ -119,19 +129,27 @@ def main():
             stats[severity][category] += 1
             # Extract the product name and update product statistics
             product = classify_subdomains(subproduct)
+            if protocol == 'tcp':
+                product = classify_subdomains(line.split()[-1])
             product_stats[product][severity][category] += 1
             if severity not in ['info'] and protocol != 'ssl':
                 product_lines[product].add(line)
+            # Ignore TCP when not IP address
+            if protocol == 'tcp' and not re.search(r'^[0-9\.]*$',subproduct):
+                continue
             # Create a list of Wordpress
             if category.startswith('wordpress-detect') or category == 'metatag-cms':
                 wp_extractor(wp_list[subproduct], line, category)
             # Create a list of DB
-            if category in ['mysql-detect', 'pgsql-detect', 'redis-detect', 'mongodb-detect', 'cql-detect', 'cql-detect', 
+            if category in ['mysql-detect', 'pgsql-detect', 'redis-detect', 'mongodb-detect', 'cql-detect', 'cql-detect',
 'proftpd-server-detect', 'rabbitmq-detect', 's3-detect', 'smb-detect', 'samba-detect', 'microsoft-ftp-service', 'mikrotik-ftp-server-detect', 'xlight-ftp-service-detect']:
-                db_list[category].add(f'{resolve_a_records(subproduct)} {subproduct}')
+                db_list[category].add(f'{subproduct} {line.split()[-1]}')
+            # Add panel in the list of DB
+            if category.endswith('-panel'):
+                db_list[category].add(f'{subproduct} {line.split()[3]}')
             # Create a list of Remote conn
             if category in ['rdp-detect', 'openssh-detect', 'sshd-dropbear-detect', 'telnet-detect']:
-                remote_list[category].add(f'{resolve_a_records(subproduct)} {subproduct}')
+                remote_list[category].add(f'{subproduct} {line.split()[-1]} {detect_os_from_banner(line)}')
 
 
     # Display global statistics
@@ -172,6 +190,8 @@ def main():
 
         for db_name in db_list[db_engine]:
             ipv4, domain = db_name.split(' ')
+            if 'subdomains:' in domain:
+                domain = domain.split(':')[1].split(',')[0]
 
             # If the current IP is not unique, skip this entry
             if ipv4 in unique_ips and db_engine != 's3-detect':
@@ -184,16 +204,16 @@ def main():
             product = classify_subdomains(domain)
 
             # Add a row to the table data
-            if db_engine == 's3-detect':
+            if db_engine == 's3-detect' or db_engine.endswith('-panel'):
                 row = [domain, product]
             else:
                 row = [ipv4, domain, product]
             table_data.append(row)
 
-        if db_engine == 's3-detect':
+        if db_engine == 's3-detect' or db_engine.endswith('-panel'):
             # Sort the table data first by the product name and then by IP
             sorted_table_data = sorted(table_data, key=lambda row: (row[1], row[0]))
-            headers = ["Domain", "Product"]
+            headers = ["URL", "Product"]
         else:
             # Sort the table data first by the product name and then by IP
             sorted_table_data = sorted(table_data, key=lambda row: (row[2], row[0]))
@@ -209,7 +229,9 @@ def main():
         unique_ips = set()
 
         for conn in remote_list[conn_engine]:
-            ipv4, domain = conn.split(' ')
+            ipv4, domain, os = conn.split(' ')
+            if 'subdomains:' in domain:
+                domain = domain.split(':')[1].split(',')[0]
 
             # If the current IP is not unique, skip this entry
             if ipv4 in unique_ips:
@@ -221,13 +243,13 @@ def main():
             product = classify_subdomains(domain)
 
             # Add a row to the table data
-            row = [ipv4, domain, product]
+            row = [ipv4, domain, product, os]
             table_data.append(row)
 
         # Sort the table data first by the product name and then by IP
         sorted_table_data = sorted(table_data, key=lambda row: (row[2], row[0]))
 
-        headers = ["IP", "Domain", "Product"]
+        headers = ["IP", "Domain", "Product", "OS"]
 
         print(tabulate(sorted_table_data, headers=headers, tablefmt="grid"))
 

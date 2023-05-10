@@ -107,9 +107,9 @@ def add_metadata_tcp_scan(ip_to_domains, nuclei_tcp_tmp_output):
 
         # Check if line contains any IP from ip_to_domains keys
         for ip in ip_to_domains.keys():
-            if ip in line:
+            if f' {ip}:' in line:
                 # If it does, append the associated value from the dict to the line
-                line += ' subdomains:' + ', '.join(ip_to_domains[ip])
+                line += ' subdomains:' + ','.join(ip_to_domains[ip])
 
         # Add the (possibly modified) line to the new_lines list
         new_lines.append(line)
@@ -167,8 +167,8 @@ def main(input_file: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Perform a scan using httpx and nuclei')
     parser.add_argument('input_file',
-        nargs='?', default='targets.subfinder.latest.txt',
-        help='The input file containing targets (default: targets.subfinder.latest.txt)')
+        nargs='?', default='targets.latest.txt',
+        help='The input file containing targets (default: targets.latest.txt)')
     args = parser.parse_args()
 
     main(args.input_file)
