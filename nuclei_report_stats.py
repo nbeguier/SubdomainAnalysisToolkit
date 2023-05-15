@@ -29,25 +29,30 @@ def detect_os_from_banner(line):
     """
     Returns an OS guess from openssh banner
     """
-    match = re.search(r'(Debian-[0-9]+)', line)
-    if match:
-        return match.group(0)
-    match = re.search('OpenSSH_7.2p2 Ubuntu-4', line)
-    if match:
-        return 'Ubuntu-16.04'
-    match = re.search('OpenSSH_7.6p1 Ubuntu-4', line)
-    if match:
-        return 'Ubuntu-18.04'
-    match = re.search('OpenSSH_8.2p1 Ubuntu-4', line)
-    if match:
-        return 'Ubuntu-20.04'
-    match = re.search('OpenSSH_8.9p1 Ubuntu-3', line)
-    if match:
-        return 'Ubuntu-21.04'
-    match = re.search('Ubuntu', line)
-    if match:
-        return 'Ubuntu-x.x'
-    return 'Unknown'
+    os_guess = ''
+    match = re.search(r'(OpenSSH.*) subdomains:', line)
+    if not match:
+        os_guess = f'Unknown-({line.replace(" ", "_")})'
+    else:
+        # -12 to remove " subdomains:"
+        version = match.group(0)[:-12]
+
+        if re.search(r'(Debian-[0-9]+)', version):
+            os_guess = re.search(r'(Debian-[0-9]+)', version).group(0)
+        elif re.search('OpenSSH_7.2p2 Ubuntu-4', version):
+            os_guess = 'Ubuntu-16.04'
+        elif re.search('OpenSSH_7.6p1 Ubuntu-4', version):
+            os_guess = 'Ubuntu-18.04'
+        elif re.search('OpenSSH_8.2p1 Ubuntu-4', version):
+            os_guess = 'Ubuntu-20.04'
+        elif re.search('OpenSSH_8.9p1 Ubuntu-3', version):
+            os_guess = 'Ubuntu-21.04'
+        elif re.search('Ubuntu', version):
+            os_guess = 'Ubuntu-x.x'
+        else:
+            os_guess = f'Unknown-({version.replace(" ", "_")})'
+
+    return os_guess
 
 def process_nuclei_report_line(line):
     """
@@ -145,7 +150,7 @@ def main():
 'proftpd-server-detect', 'rabbitmq-detect', 's3-detect', 'smb-detect', 'samba-detect', 'microsoft-ftp-service', 'mikrotik-ftp-server-detect', 'xlight-ftp-service-detect']:
                 db_list[category].add(f'{subproduct} {line.split()[-1]}')
             # Add panel in the list of DB
-            if category.endswith('-panel'):
+            if category.endswith('-panel') or category.endswith('-manager'):
                 db_list[category].add(f'{subproduct} {line.split()[3]}')
             # Create a list of Remote conn
             if category in ['rdp-detect', 'openssh-detect', 'sshd-dropbear-detect', 'telnet-detect']:
@@ -204,13 +209,13 @@ def main():
             product = classify_subdomains(domain)
 
             # Add a row to the table data
-            if db_engine == 's3-detect' or db_engine.endswith('-panel'):
+            if db_engine == 's3-detect' or db_engine.endswith('-panel') or db_engine.endswith('-manager'):
                 row = [domain, product]
             else:
                 row = [ipv4, domain, product]
             table_data.append(row)
 
-        if db_engine == 's3-detect' or db_engine.endswith('-panel'):
+        if db_engine == 's3-detect' or db_engine.endswith('-panel') or db_engine.endswith('-manager'):
             # Sort the table data first by the product name and then by IP
             sorted_table_data = sorted(table_data, key=lambda row: (row[1], row[0]))
             headers = ["URL", "Product"]

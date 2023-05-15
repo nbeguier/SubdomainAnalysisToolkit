@@ -28,10 +28,14 @@ Here is how you can use the tools included in this repository.
 
 ```bash
 # Generate a list of subdomains
-bash subfinder.sh targets.txt
+bash subdomains.sh targets.txt
+
+# Generate a list of TCP reachable domains (not 80, 443)
+bash naabu.sh
 
 # Generate a nuclei report
-python nuclei.py
+python nuclei.py targets.latest.txt
+python nuclei.py naabu.latest.txt
 
 # Display the new findings, at least low severity, during the last 7 days
 python diff_nuclei.py --severe --days 7
@@ -42,9 +46,6 @@ bash merge_all_reports.sh
 # Generate stats from the nuclei report
 python nuclei_report_stats.py report.nuclei.latest.txt
 
-# Create another report with timestamp and other metadata
-python reformat_reports.py > report.nuclei.latest.csv
-
 
 # Others
 # Get generic info from subdomains
@@ -54,6 +55,8 @@ cat targets.subfinder.latest.txt | python parse_subdomains.py
 python get_unique_urls.py -d beguier.eu
 python get_unique_urls.py -f targets.subfinder.latest.txt
 
+# Create another report with timestamp and other metadata
+python reformat_reports.py > report.nuclei.latest.csv
 ```
 
 This toolkit simplifies the process of subdomain discovery and analysis, making it an invaluable resource for anyone involved in network security and site reliability.

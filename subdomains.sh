@@ -16,14 +16,16 @@ TIMEOUT=10 # in minutes
 
 cp "$subdomain_latest_output" "$previous_subdomains_file"
 
-# Execute subfinder to get the list of subdomains
+# Update subfinder
 echo "Updating subfinder"
-subfinder -silent -up
+subfinder -up >/dev/null 2>&1
+
+# Execute subfinder to get the list of subdomains
 echo "Running subfinder to obtain subdomains..."
 subfinder -list "$input_file" -o "$subfinder_output"
 
 # Execute amass to get the list of subdomains
-echo "Running amass to obtain subdomains (${TIMEOUT}mn timeout)..."
+echo "Running amass to obtain subdomains :${TIMEOUT}mn timeout..."
 amass enum -df "$input_file" -passive -timeout "$TIMEOUT" -o "$amass_output"
 
 # Display new subdomains

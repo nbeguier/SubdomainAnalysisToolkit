@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from tabulate import tabulate
 
+# from pdb import set_trace as st
+
 def get_files(pattern: str) -> list:
     """
     Returns a list of files in the "reports" directory that match the given pattern.
@@ -80,6 +82,8 @@ def print_most_recent(most_recent, severe):
 
     for entry in most_recent:
         line = entry[1]
+        if len(line.split()) < 4:
+            continue
         if line.split()[1] == '[ssl]':
             continue
         if not severe or "[high]" in line or "[medium]" in line or "[low]" in line:

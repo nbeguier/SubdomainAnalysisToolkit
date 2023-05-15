@@ -54,7 +54,7 @@ def generate_ips(input_file):
     """Generate a list of IPs from subdomains"""
     try:
         print('Generating a list of IPs from subdomains...')
-        command = f"cat {input_file} | dnsx -silent -resp -a"
+        command = "awk -F ':' '{print $1}' "+input_file+" | dnsx -resp -a"
         output = subprocess.check_output(command, shell=True, text=True)
 
         # Parse output and build dictionary
