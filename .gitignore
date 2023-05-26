@@ -1,6 +1,5 @@
 *.txt
 *.csv
-reports/
 ideas/
 resume.cfg
 settings.py
