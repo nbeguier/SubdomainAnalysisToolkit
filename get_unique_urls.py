@@ -6,7 +6,12 @@ ignoring files with specified extensions.
 
 import argparse
 import json
-import requests
+import time
+from requests import RequestException, Session
+
+MAX_RETRIES = 3
+RETRY_DELAY = 1  # in seconds
+SESSION = Session()
 
 def get_unique_urls(subdomain: str) -> list:
     """
@@ -16,14 +21,27 @@ def get_unique_urls(subdomain: str) -> list:
     :return: A list of unique URLs.
     """
     url = f'https://web.archive.org/web/timemap/json?url={subdomain}&matchType=prefix&collapse=urlkey&output=json&fl=original%2Cmimetype%2Ctimestamp%2Cendtimestamp%2Cgroupcount%2Cuniqcount&filter=!statuscode%3A%5B45%5D..&limit=10000&_=1683528722633'
-    response = requests.get(url)
-    data = json.loads(response.text)[1:]
 
-    unique_urls = set()
-    for entry in data:
-        unique_urls.add(entry[0])
+    retries = 0
+    while retries < MAX_RETRIES:
+        try:
+            response = SESSION.get(url)
+            response.raise_for_status()
+            data = json.loads(response.text)[1:]
 
-    return list(unique_urls)
+            unique_urls = set()
+            for entry in data:
+                unique_urls.add(entry[0])
+
+            return list(unique_urls)
+
+        except (RequestException, ValueError):
+            retries += 1
+            if retries < MAX_RETRIES:
+                time.sleep(RETRY_DELAY)
+            else:
+                print(f"Failed to retrieve unique URLs for subdomain: {subdomain}")
+                return []
 
 def main():
     """
