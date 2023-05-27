@@ -14,12 +14,13 @@ sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf ~/Downloads/go1.20.3.li
 go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go install -v github.com/owasp-amass/amass/v3/...@master
 
 # Install Python dependencies
 pip install -U -r requirements.txt
 
 # Copy the sample settings file to create your own
-cp settings.py.sample settings.py
+cp settings.sample.py settings.py
 ```
 
 ## Tools Usage
@@ -49,20 +50,14 @@ python nuclei_report_stats.py report.nuclei.latest.txt
 
 # Others
 # Get generic info from subdomains
-cat targets.subfinder.latest.txt | python parse_subdomains.py
+cat targets.latest.txt | python parse_subdomains.py
 
 # Get known URLs from Internet Archives
 python get_unique_urls.py -d beguier.eu
-python get_unique_urls.py -f targets.subfinder.latest.txt
+python get_unique_urls.py -f targets.latest.txt
 
 # Create another report with timestamp and other metadata
 python reformat_reports.py > report.nuclei.latest.csv
 ```
 
 This toolkit simplifies the process of subdomain discovery and analysis, making it an invaluable resource for anyone involved in network security and site reliability.
-
-
-go install -v github.com/owasp-amass/amass/v3/...@master
-amass enum -df targets.txt -passive
-amass intel -df targets.txt -whois
-

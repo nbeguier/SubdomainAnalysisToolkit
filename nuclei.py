@@ -8,9 +8,19 @@ import argparse
 import subprocess
 from datetime import datetime
 from pathlib import Path
+import importlib.util
 import tempfile
 
-from settings import nuclei_exclude_templates, nuclei_target_blacklist
+try:
+    spec = importlib.util.spec_from_file_location("settings", "settings.py")
+    settings = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(settings)
+except FileNotFoundError:
+    # If settings.py doesn't exist, import settings.py.sample
+    print("Warning: settings.py not found. Falling back to settings.sample.py !")
+    spec = importlib.util.spec_from_file_location("settings", "settings.sample.py")
+    settings = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(settings)
 
 # Debug
 # from pdb import set_trace as st
@@ -31,7 +41,7 @@ def perform_scan(input_file, nuclei_no_tcp_tmp_output):
         with open(input_file, encoding='utf-8') as targets:
             with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp:
                 for target in targets:
-                    if target.strip() not in nuclei_target_blacklist:
+                    if target.strip() not in settings.nuclei_target_blacklist:
                         temp.write(target)
                 temp.flush()
         with open(temp.name, 'r', encoding='utf-8') as temp_in:
@@ -40,7 +50,7 @@ def perform_scan(input_file, nuclei_no_tcp_tmp_output):
                 stdin=temp_in,
                 stdout=subprocess.PIPE)
             nuclei_process = subprocess.Popen(
-                ['nuclei', '-silent', '-et', ','.join(nuclei_exclude_templates),
+                ['nuclei', '-silent', '-et', ','.join(settings.nuclei_exclude_templates),
                     '-exclude-type', 'tcp',
                     '-o', nuclei_no_tcp_tmp_output, '-page-timeout', '3',
                     '-timeout', '3', '-concurrency', '50',
@@ -82,7 +92,7 @@ def perform_tcp_scan(ip_file, nuclei_tcp_tmp_output):
     try:
         nuclei_process = subprocess.Popen(
             ['nuclei', '-silent', '-l', ip_file,
-                '-et', ','.join(nuclei_exclude_templates),
+                '-et', ','.join(settings.nuclei_exclude_templates),
                 '-type', 'tcp',
                 '-o', nuclei_tcp_tmp_output, '-page-timeout', '3',
                 '-timeout', '3', '-concurrency', '50',
