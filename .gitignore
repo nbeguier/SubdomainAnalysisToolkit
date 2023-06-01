@@ -1,5 +1,6 @@
 *.txt
 *.csv
+*.pkl
 ideas/
 resume.cfg
 settings.py

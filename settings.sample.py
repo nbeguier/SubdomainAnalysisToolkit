@@ -36,3 +36,5 @@ nuclei_exclude_templates = [
     'technologies/tech-detect.yaml',
     'technologies/waf-detect.yaml',
 ]
+
+graywarefare_api_key = 'xxxxxxxxxxxxxxxxx'

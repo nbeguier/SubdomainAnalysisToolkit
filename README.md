@@ -58,6 +58,9 @@ python get_unique_urls.py -f targets.latest.txt
 
 # Create another report with timestamp and other metadata
 python reformat_reports.py > report.nuclei.latest.csv
+
+# Get public buckets
+python get_public_buckets.py github
 ```
 
 This toolkit simplifies the process of subdomain discovery and analysis, making it an invaluable resource for anyone involved in network security and site reliability.
