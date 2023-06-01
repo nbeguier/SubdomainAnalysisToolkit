@@ -61,6 +61,9 @@ python reformat_reports.py > report.nuclei.latest.csv
 
 # Get public buckets
 python get_public_buckets.py github
+
+# Counter visit of vulnerabilities in report
+python counter_visit.py
 ```
 
 This toolkit simplifies the process of subdomain discovery and analysis, making it an invaluable resource for anyone involved in network security and site reliability.
