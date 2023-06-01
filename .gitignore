@@ -1,6 +1,7 @@
 *.txt
 *.csv
 *.pkl
+graph.png
 ideas/
 resume.cfg
 settings.py

@@ -29,13 +29,13 @@ Here is how you can use the tools included in this repository.
 
 ```bash
 # Generate a list of subdomains
-bash subdomains.sh targets.txt
+bash subdomains.sh
 
 # Generate a list of TCP reachable domains (not 80, 443)
 bash naabu.sh
 
 # Generate a nuclei report
-python nuclei.py targets.latest.txt
+python nuclei.py
 python nuclei.py naabu.latest.txt
 
 # Display the new findings, at least low severity, during the last 7 days
@@ -50,7 +50,7 @@ python nuclei_report_stats.py report.nuclei.latest.txt
 
 # Others
 # Get generic info from subdomains
-cat targets.latest.txt | python parse_subdomains.py
+python parse_subdomains.py
 
 # Get known URLs from Internet Archives
 python get_unique_urls.py -d beguier.eu
