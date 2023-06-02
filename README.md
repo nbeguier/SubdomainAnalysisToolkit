@@ -27,6 +27,15 @@ cp settings.sample.py settings.py
 
 Here is how you can use the tools included in this repository.
 
+The easy way:
+
+```bash
+echo "github.com" > targets.txt
+bash wizard.sh
+```
+
+or script by script
+
 ```bash
 # Generate a list of subdomains
 bash subdomains.sh
