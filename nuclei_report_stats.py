@@ -159,14 +159,14 @@ def main():
 
     # Display global statistics
     print("Global statistics:")
-    for severity in ['high', 'medium', 'low', 'info']:
+    for severity in ['critical', 'high', 'medium', 'low', 'info']:
         print(f"{severity.capitalize()} : {sum(stats[severity].values())}")
 
     # Display product-wise statistics
     print("\nStatistics per product:")
     for product, product_stat in product_stats.items():
         print(f"\n## Product: {product}")
-        for severity in ['high', 'medium', 'low', 'info']:
+        for severity in ['critical', 'high', 'medium', 'low', 'info']:
             print(f"  {severity.capitalize()} : {sum(product_stat[severity].values())}")
             for line in product_lines[product]:
                 if get_nuclei_line_severity(line) == severity:

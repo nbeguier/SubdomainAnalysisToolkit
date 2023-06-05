@@ -4,6 +4,9 @@ import sys
 import re
 import subprocess
 
+# Debug
+# from pdb import set_trace as st
+
 # Define color codes
 COLOR_RED = '\033[91m'
 COLOR_GREEN = '\033[92m'
@@ -23,7 +26,10 @@ with open(INPUT_FILE, 'r', encoding='utf-8') as input_f, open(REPORT, 'w', encod
 with open(REPORT, 'r', encoding='utf-8') as report_f:
     for line in report_f:
         line = line.strip()
-        category = re.findall(r'\[(.*?)\]', line)[0].split(':')[0]
+        try:
+            category = re.findall(r'\[(.*?)\]', line)[0].split(':')[0]
+        except:
+            continue
         target = line.split()[3]
         if target.startswith('http'):
             target = target.split('/')[2]
