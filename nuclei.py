@@ -12,13 +12,13 @@ import importlib.util
 import tempfile
 
 try:
-    spec = importlib.util.spec_from_file_location("settings", "settings.py")
+    spec = importlib.util.spec_from_file_location('settings', 'settings.py')
     settings = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(settings)
 except FileNotFoundError:
     # If settings.py doesn't exist, import settings.py.sample
-    print("Warning: settings.py not found. Falling back to settings.sample.py !")
-    spec = importlib.util.spec_from_file_location("settings", "settings.sample.py")
+    print('Warning: settings.py not found. Falling back to settings.sample.py !')
+    spec = importlib.util.spec_from_file_location('settings', 'settings.sample.py')
     settings = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(settings)
 
@@ -36,7 +36,7 @@ def update_tools():
 
 def perform_scan(input_file, nuclei_no_tcp_tmp_output):
     """Perform the scan using httpx and nuclei"""
-    print(f'Launching httpx and nuclei to perform the scan... ({nuclei_no_tcp_tmp_output})')
+    print(f'Launching httpx and nuclei to perform the scan...')
     try:
         with open(input_file, encoding='utf-8') as targets:
             with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp:
@@ -88,7 +88,7 @@ def generate_ips(input_file):
 
 def perform_tcp_scan(ip_file, nuclei_tcp_tmp_output):
     """Perform a TCP scan using nuclei"""
-    print(f'Launching nuclei to perform the TCP scan... ({nuclei_tcp_tmp_output})')
+    print(f'Launching nuclei to perform the TCP scan...')
     try:
         nuclei_process = subprocess.Popen(
             ['nuclei', '-silent', '-l', ip_file,
@@ -148,37 +148,63 @@ def generate_report(nuclei_no_tcp_tmp_output, nuclei_tcp_tmp_output, nuclei_outp
         print('Nuclei process did not generate a report.')
 
 
-def main(input_file: str):
+def filter_subdomains(input_file: str, output_file: str, top_domain: str):
+    """
+    Filter the input file to include only subdomains
+    of the top_domain and write them to the output file.
+    """
+    with open(input_file, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+
+    subdomains = []
+    for line in lines:
+        domain = line.strip()
+        if domain == top_domain or domain.endswith(f'.{top_domain}'):
+            subdomains.append(domain)
+
+    with open(output_file, 'w', encoding='utf-8') as file:
+        file.write('\n'.join(subdomains))
+
+
+def main(input_file: str, top_domain: str):
     """
     Run httpx and nuclei with the given input file, and store the output in a report file.
     """
     if not Path(input_file).exists():
-        print(f"Input file '{input_file}' not found. Exiting.")
+        print(f'Input file "{input_file}" not found. Exiting.')
         return
 
     timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
     nuclei_output = f'reports/report.nuclei.{timestamp}.txt'
-    nuclei_no_tcp_tmp_output = 'report.nuclei.no.tcp.tmp.txt'
-    nuclei_tcp_tmp_output = 'report.nuclei.tcp.tmp.txt'
+    tmp_nuclei_no_tcp_output = '/tmp/report.nuclei.no.tcp.txt'
+    tmp_nuclei_tcp_output = '/tmp/report.nuclei.tcp.txt'
+    tmp_subdomains_file = f'/tmp/subdomains.{timestamp}.txt'
 
     update_tools()
 
-    perform_scan(input_file, nuclei_no_tcp_tmp_output)
+    if top_domain:
+        print(f'Run nuclei on a specific domain: {top_domain}')
+        filter_subdomains(input_file, tmp_subdomains_file, top_domain)
+        input_file = tmp_subdomains_file
+
+    perform_scan(input_file, tmp_nuclei_no_tcp_output)
 
     ip_file, ip_dict = generate_ips(input_file)
 
     if ip_file:
-        perform_tcp_scan(ip_file, nuclei_tcp_tmp_output)
-        add_metadata_tcp_scan(ip_dict, nuclei_tcp_tmp_output)
+        perform_tcp_scan(ip_file, tmp_nuclei_tcp_output)
+        add_metadata_tcp_scan(ip_dict, tmp_nuclei_tcp_output)
 
-    generate_report(nuclei_no_tcp_tmp_output, nuclei_tcp_tmp_output, nuclei_output)
+    generate_report(tmp_nuclei_no_tcp_output, tmp_nuclei_tcp_output, nuclei_output)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Perform a scan using httpx and nuclei')
     parser.add_argument('input_file',
         nargs='?', default='targets.latest.txt',
-        help='The input file containing targets (default: targets.latest.txt)')
+        help='The input file containing targets')
+    parser.add_argument('--domain',  default='',
+        help='The domain to scan')
     args = parser.parse_args()
 
-    main(args.input_file)
+    main(args.input_file, args.domain)
