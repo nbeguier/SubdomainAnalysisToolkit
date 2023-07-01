@@ -8,7 +8,7 @@ from pathlib import Path
 from collections import defaultdict
 from tabulate import tabulate
 
-from settings import products, false_positive
+from settings import products, false_positive, nuclei_target_blacklist
 
 # Debug
 # from pdb import set_trace as st
@@ -129,6 +129,8 @@ def main():
             # Match and extract required information from each line
             is_valid, category, protocol, severity, subproduct = process_nuclei_report_line(line)
             if not is_valid:
+                continue
+            if True in [ subproduct.startswith(b) or '/'+b in subproduct for b in nuclei_target_blacklist ]:
                 continue
             # Update global statistics
             stats[severity][category] += 1

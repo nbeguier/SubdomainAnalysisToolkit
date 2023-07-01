@@ -10,6 +10,7 @@ false_positive = [
 ]
 
 nuclei_target_blacklist = [
+    'login.microsoftonline.com',
     'example.com'
 ]
 

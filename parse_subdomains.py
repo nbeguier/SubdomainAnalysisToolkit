@@ -87,7 +87,7 @@ def print_table(rows):
         rows (list): The rows to print.
     """
     # Sort the rows by the "IP Provider" field
-    rows = sorted(rows, key=lambda row: row[3])
+    rows = sorted(rows, key=lambda row: str(row[3]))
 
     headers = ['Subdomain', 'CNAME', 'IP', 'IP Provider']
     print(tabulate(rows, headers=headers, tablefmt='grid'))

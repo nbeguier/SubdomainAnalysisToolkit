@@ -41,7 +41,7 @@ def perform_scan(input_file, nuclei_no_tcp_tmp_output):
         with open(input_file, encoding='utf-8') as targets:
             with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp:
                 for target in targets:
-                    if target.strip() not in settings.nuclei_target_blacklist:
+                    if True not in [ target.strip().startswith(b) or '/'+b in target.strip() for b in settings.nuclei_target_blacklist ]:
                         temp.write(target)
                 temp.flush()
         with open(temp.name, 'r', encoding='utf-8') as temp_in:
@@ -64,12 +64,14 @@ def generate_ips(input_file):
     """Generate a list of IPs from subdomains"""
     try:
         print('Generating a list of IPs from subdomains...')
-        command = "awk -F ':' '{print $1}' "+input_file+" | dnsx -resp -a"
+        command = "awk -F ':' '{print $1}' "+input_file+" | sort -u | dnsx -resp -a -r 10.17.0.2"
         output = subprocess.check_output(command, shell=True, text=True)
 
         # Parse output and build dictionary
         ip_to_domains = {}
         for line in output.strip().split('\n'):
+            if not line:
+                continue
             domain, ip = line.strip().split(' ')
             ip = ip[1:-1]  # Remove square brackets around IP
             if ip not in ip_to_domains:
