@@ -16,7 +16,10 @@ echo "Generate a nuclei report for targets.latest.txt"
 python nuclei.py
 echo "Generate a nuclei report for naabu.latest.txt"
 python nuclei.py naabu.latest.txt
-
+if [ -f "targets.custom.txt" ]; then
+    echo "Generate a nuclei report for targets.custom.txt"
+    python nuclei.py targets.custom.txt
+fi
 
 echo "Merge all reports into a single report"
 bash merge_all_reports.sh

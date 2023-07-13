@@ -106,11 +106,9 @@ def main():
     Main function to read the nuclei report file, extract statistics and
     display the results.
     """
-    if len(sys.argv) != 2:
-        print("Error: Please provide a nuclei report file as input.")
-        sys.exit(1)
-
-    report_file = sys.argv[1]
+    report_file = 'report.nuclei.latest.txt'
+    if len(sys.argv) == 2:
+        report_file = sys.argv[1]
 
     # Initialize the dictionaries for storing statistics
     stats = defaultdict(lambda: defaultdict(int))

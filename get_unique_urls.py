@@ -33,6 +33,7 @@ def get_unique_urls(subdomain: str) -> list:
             for entry in data:
                 unique_urls.add(entry[0])
 
+            print(f"{subdomain}: OK")
             return list(unique_urls)
 
         except (RequestException, ValueError):
@@ -61,10 +62,10 @@ def main():
         with open(args.file, 'r', encoding='utf-8') as f:
             subdomains = f.read().splitlines()
 
+    all_urls = set()  # Use a set to ensure uniqueness
+
     for subdomain in subdomains:
         unique_urls = get_unique_urls(subdomain)
-
-        unique_urls = sorted(unique_urls)
 
         for url in unique_urls:
             if not args.all:
@@ -78,12 +79,27 @@ def main():
                     'png',
                     'svg',
                     'ttf',
-                    'webp'
+                    'webp',
                     'woff',
                     'woff2',
                 ]:
                     continue
-            print(url)
+            all_urls.add(url)
+
+    # Read the existing URLs from 'urls.txt' and add to the set
+    try:
+        with open('urls.txt', 'r', encoding='utf-8') as f:
+            existing_urls = f.read().splitlines()
+            all_urls.update(existing_urls)
+    except FileNotFoundError:
+        pass  # File doesn't exist yet, continue
+
+    sorted_urls = sorted(all_urls)  # Sort the unique URLs
+
+    # Write the unique URLs to 'urls.txt'
+    with open('urls.txt', 'w', encoding='utf-8') as f:
+        for url in sorted_urls:
+            f.write(url + '\n')
 
 if __name__ == '__main__':
     main()

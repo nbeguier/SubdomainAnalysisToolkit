@@ -1,6 +1,8 @@
 *.txt
 *.csv
 *.pkl
+*.tsv
+*.json
 graph.png
 ideas/
 resume.cfg
