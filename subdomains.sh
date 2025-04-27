@@ -28,7 +28,7 @@ amass_output="targets.amass/targets.amass.${timestamp}.txt"
 #bbot_output="targets.bbot/targets.bbot.${timestamp}.txt"
 subdomain_latest_output="targets.latest.txt"
 previous_subdomains_file="/tmp/targets.latest.txt"
-TIMEOUT=10 # in minutes
+TIMEOUT=2 # in minutes
 
 # If the latest output file exists, copy it to the temp location
 if [ -f "$subdomain_latest_output" ]; then
@@ -67,4 +67,4 @@ else
 fi
 
 # cat "$subfinder_output" "$amass_output" "$bbot_output" "$previous_subdomains_file" | sort -u > "$subdomain_latest_output"
-cat "$subfinder_output" "$amass_output" "$previous_subdomains_file" | sort -u > "$subdomain_latest_output"
+cat "$subfinder_output" "$amass_output" "$previous_subdomains_file" | grep -v '^2a\.' | sort -u > "$subdomain_latest_output"
