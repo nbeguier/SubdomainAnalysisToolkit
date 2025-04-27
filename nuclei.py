@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 import importlib.util
 import tempfile
+import re
 
 try:
     spec = importlib.util.spec_from_file_location('settings', 'settings.py')
@@ -60,11 +61,17 @@ def perform_scan(input_file, nuclei_no_tcp_tmp_output):
         print('Nuclei process interrupted. Continuing...')
 
 
+def is_valid_ipv4(ip):
+    # Regular expression for validating an IPv4 address
+    pattern = r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(/([0-9]|[1-2][0-9]|3[0-2]))?$'
+    return re.match(pattern, ip) is not None
+
+
 def generate_ips(input_file):
     """Generate a list of IPs from subdomains"""
     try:
         print('Generating a list of IPs from subdomains...')
-        command = "awk -F ':' '{print $1}' "+input_file+" | sort -u | dnsx -resp -a -r 10.17.0.2"
+        command = "awk -F ':' '{print $1}' "+input_file+" | sort -u | dnsx -resp -a -r 1.1.1.1"
         output = subprocess.check_output(command, shell=True, text=True)
 
         # Parse output and build dictionary
@@ -77,6 +84,11 @@ def generate_ips(input_file):
             if ip not in ip_to_domains:
                 ip_to_domains[ip] = []
             ip_to_domains[ip].append(domain)
+
+        for line in Path(input_file).open().readlines():
+            if is_valid_ipv4(line):
+                ip_to_domains[line] = []
+                ip_to_domains[line].append(line)
 
         with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
             temp_file.write('\n'.join([i for i in ip_to_domains]))
@@ -95,7 +107,7 @@ def perform_tcp_scan(ip_file, nuclei_tcp_tmp_output):
         nuclei_process = subprocess.Popen(
             ['nuclei', '-silent', '-l', ip_file,
                 '-et', ','.join(settings.nuclei_exclude_templates),
-                '-type', 'tcp',
+                '-exclude-type', 'http,ssl,websocket,javascript,headless',
                 '-o', nuclei_tcp_tmp_output, '-page-timeout', '3',
                 '-timeout', '3', '-concurrency', '50',
                 '-bulk-size', '50', '-rate-limit', '500'])
