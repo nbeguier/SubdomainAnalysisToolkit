@@ -76,3 +76,18 @@ python counter_visit.py
 ```
 
 This toolkit simplifies the process of subdomain discovery and analysis, making it an invaluable resource for anyone involved in network security and site reliability.
+
+or the TOR way...
+
+```bash
+# Run tor proxy
+docker run -ti --rm -p 127.0.0.1:9050:9050 andrius/alpine-tor
+
+# Generate a list of subdomains
+bash subdomains.sh
+
+# Run nuclei on latest targets with tor proxy
+bash nuclei.sh [--domain example.com]
+# you can run this during the scan:
+watch 'curl -s http://localhost:9092/metrics | jq .percent'
+```
