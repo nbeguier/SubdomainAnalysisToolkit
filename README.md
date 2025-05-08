@@ -89,5 +89,5 @@ bash subdomains.sh
 # Run nuclei on latest targets with tor proxy
 bash nuclei.sh [--domain example.com]
 # you can run this during the scan:
-watch 'curl -s http://localhost:9092/metrics | jq .percent'
+watch 'curl -s http://localhost:9092/metrics | jq .summary'
 ```

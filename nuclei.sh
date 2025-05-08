@@ -80,7 +80,7 @@ run_severity_scans() {
                 continue
             fi
             echo "    [+] Found $template_count templates for severity: $severity and protocol: $proto"
-            CMD=(nuclei -l "$FINAL_TARGETS" -type "$proto" -severity "$severity" -page-timeout 3 -timeout 3 -concurrency 50 -bulk-size 50 -rate-limit 500 -silent -stats -mp 9092)
+            CMD=(nuclei -l "$FINAL_TARGETS" -type "$proto" -severity "$severity" -page-timeout 3 -timeout 3 -concurrency 10 -bulk-size 10 -rate-limit 100 -silent -stats -mp 9092)
 
             if [ "$USE_PROXY" = true ]; then
                 CMD+=(-p "$SOCKS_PROXY")
