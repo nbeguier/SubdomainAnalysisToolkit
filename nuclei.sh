@@ -3,6 +3,7 @@
 TARGETS_FILE="targets.latest.txt"
 SOCKS_PROXY="socks5://127.0.0.1:9050"
 DOMAIN_FILTER=""
+INFO_ONLY=false
 
 # Function to parse arguments
 parse_arguments() {
@@ -11,6 +12,10 @@ parse_arguments() {
             --domain)
                 DOMAIN_FILTER="$2"
                 shift 2
+                ;;
+            --info-only)
+                INFO_ONLY=true
+                shift
                 ;;
             -*|--*)
                 echo "Unknown option $1"
@@ -68,7 +73,12 @@ run_severity_scans() {
     TARGET_COUNT=$(wc -l < "$FINAL_TARGETS")
     echo "[*] Starting Nuclei scans on $TARGET_COUNT targets..."
 
-    SEVERITIES=("critical" "high" "medium" "low" "info")
+    if [ "$INFO_ONLY" = true ]; then
+        SEVERITIES=("info")
+    else
+        SEVERITIES=("critical" "high" "medium" "low" "info")
+    fi
+
     PROTOCOLS=("dns" "file" "http" "headless" "tcp" "workflow" "ssl" "websocket" "whois" "code" "javascript")
 
     for severity in "${SEVERITIES[@]}"; do
