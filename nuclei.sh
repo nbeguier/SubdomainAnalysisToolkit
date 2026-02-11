@@ -4,6 +4,8 @@ TARGETS_FILE="targets.latest.txt"
 SOCKS_PROXY="socks5://127.0.0.1:9050"
 DOMAIN_FILTER=""
 INFO_ONLY=false
+XML=false
+NO_COLOR=false
 
 # Function to parse arguments
 parse_arguments() {
@@ -15,6 +17,14 @@ parse_arguments() {
                 ;;
             --info-only)
                 INFO_ONLY=true
+                shift
+                ;;
+            --xml)
+                XML=true
+                shift
+                ;;
+            --no-color)
+                NO_COLOR=true
                 shift
                 ;;
             -*|--*)
@@ -93,6 +103,14 @@ run_severity_scans() {
             CMD=(nuclei -l "$FINAL_TARGETS" -type "$proto" -severity "$severity" -page-timeout 3 -timeout 3 -concurrency 10 -bulk-size 10 -rate-limit 100 -silent -stats -mp 9092)
 
             if [ "$USE_PROXY" = true ]; then
+                CMD+=(-p "$SOCKS_PROXY")
+            fi
+
+            if [ "$NO_COLOR" = true ]; then
+                CMD+=(-no-color)
+            fi
+
+            if [ "$XML" = true ]; then
                 CMD+=(-p "$SOCKS_PROXY")
             fi
 
